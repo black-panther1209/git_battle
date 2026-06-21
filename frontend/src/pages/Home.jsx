@@ -1,55 +1,64 @@
 import { useState } from "react";
 import { fetchGithubProfile } from "../services/githubApi";
+import GithubProfileCard from "../components/github/GithubProfileCard";
+import { fetchRepositories } from "../services/repositoryApi";
+import RepoCard from "../components/github/RepoCard";
+import { getTechStack } from "../utils/techStackParser";
+import TechStackChart from "../components/analytics/TechStackChart";
+import GithubScoreCard from "../components/analytics/GithubScoreCard";
+import { calculateGithubScore } from "../utils/scoreCalculator";
+
 function Home() {
   const [username, setUsername] = useState("");
   const [profile, setProfile] = useState(null);
-  const handleAnalyze = async () => {
+  const [repos, setRepos] = useState([]);
+  const techStack = getTechStack(repos);
+  const githubScore =
+  profile && repos.length > 0
+    ? calculateGithubScore(profile, repos)
+    : 0;
+ const handleAnalyze = async () => {
   try {
-    const data = await fetchGithubProfile(username);
-    setProfile(data);
+    const profileData = await fetchGithubProfile(username);
+    const repoData = await fetchRepositories(username);
+
+    setProfile(profileData);
+    setRepos(repoData);
+
   } catch (error) {
     alert("User not found");
   }
 };
-
-  return (
-    <div>
-      <h1>Git Battle ⚔️</h1>
-      <p>Analyze. Compare. Improve.</p>
-
-      <input
-        type="text"
-        placeholder="Enter GitHub Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-
-      <button onClick={handleAnalyze}>
-  Analyze Profile
-</button>
-{profile && (
+return (
   <div>
-    <img
-      src={profile.avatar_url}
-      alt={profile.login}
-      width="120"
+    <h1>Git Battle ⚔️</h1>
+
+    <input
+      value={username}
+      onChange={(e) => setUsername(e.target.value)}
     />
 
-    <h2>{profile.name}</h2>
+    <button onClick={handleAnalyze}>
+      Analyze Profile
+    </button>
 
-    <p>@{profile.login}</p>
+    {profile && (
+      <GithubProfileCard profile={profile} />
+    )}
 
-    <p>{profile.bio}</p>
-
-    <p>Followers: {profile.followers}</p>
-
-    <p>Following: {profile.following}</p>
-
-    <p>Repositories: {profile.public_repos}</p>
-  </div>
+    {repos.slice(0, 5).map((repo) => (
+      <RepoCard
+        key={repo.id}
+        repo={repo}
+      />
+    ))}
+    {repos.length > 0 && (
+  <TechStackChart stack={techStack} />
 )}
-    </div>
-  );
-}
+  {profile && (
+  <GithubScoreCard score={githubScore} />
+)}
+  </div>
+);}
 
 export default Home;
